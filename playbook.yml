@@ -1,0 +1,16 @@
+- name: Configurar servidor web con Ansible
+  hosts: webservers
+  become: yes
+
+  tasks:
+    - name: Instalar Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Asegurar que Nginx esté iniciado
+      service:
+        name: nginx
+        state: started
+        enabled: yes
