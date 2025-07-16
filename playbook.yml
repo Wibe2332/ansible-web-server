@@ -1,16 +1,50 @@
-- name: Configurar servidor web con Ansible
+- name: Configurar servidor con Docker y Nginx usando Ansible
   hosts: webservers
   become: yes
 
   tasks:
-    - name: Instalar Nginx
+    - name: Instalar dependencias
       apt:
-        name: nginx
+        name: 
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
         state: present
         update_cache: yes
 
-    - name: Asegurar que Nginx esté iniciado
-      service:
-        name: nginx
-        state: started
-        enabled: yes
+    - name: Agregar clave GPG de Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Agregar repositorio de Docker
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Instalar Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Instalar Docker Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Copiar archivos necesarios al servidor
+      copy:
+        src: "{{ item }}"
+        dest: "/home/{{ ansible_user }}/{{ item }}"
+      with_items:
+        - docker-compose.yml
+        - Dockerfile
+        - index.html
+
+    - name: Construir y levantar contenedor con docker-compose
+      command: docker-compose up -d
+      args:
+        chdir: "/home/{{ ansible_user }}"
